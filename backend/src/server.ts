@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express'; import cors from 'cors'; import helmet from 'helmet'; import rateLimit from 'express-rate-limit'; import { z } from 'zod';
+import path from 'path'; import fs from 'fs'; import { fileURLToPath } from 'url';
 import {getDriver,query,writeQuery,closeDriver} from './db.js';
 const app=express(); app.use(helmet()); app.use(cors({origin:(process.env.FRONTEND_ORIGIN||'http://localhost:5173').split(',')})); app.use(express.json({limit:'32kb'})); app.use('/api',rateLimit({windowMs:60_000,limit:120,standardHeaders:true,legacyHeaders:false}));
 const bounded=z.coerce.number().int().min(1).max(100).default(50);
@@ -29,4 +30,16 @@ const examples=[['Pets and shelters','MATCH (p:Pet)-[:HOUSED_AT]->(s:Shelter) RE
 app.get('/api/cypher-examples',async(_req,res)=>res.json(examples.map(([name,cypher])=>({name,cypher}))));
 app.get('/api/cypher-examples/:index',async(req,res,next)=>{try{const i=z.coerce.number().int().min(0).max(examples.length-1).parse(req.params.index);const [name,cypher]=examples[i];res.json({name,cypher,results:await query(cypher)});}catch(e){next(e);}});
 app.use((err:unknown,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{if(err instanceof z.ZodError)return res.status(400).json({error:'Invalid request',details:err.issues.map(x=>({path:x.path,message:x.message}))});const status=(err as {status?:number})?.status||500;res.status(status).json({error:status===503?'Database unavailable':'Request failed'});});
-const port=Number(process.env.API_PORT||4000);const server=app.listen(port,()=>console.log(`API listening on ${port}`));process.on('SIGTERM',async()=>{server.close();await closeDriver();});process.on('SIGINT',async()=>{server.close();await closeDriver();});export default app;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
+const port=Number(process.env.PORT||process.env.API_PORT||4000);const server=app.listen(port,()=>console.log(`API listening on ${port}`));process.on('SIGTERM',async()=>{server.close();await closeDriver();});process.on('SIGINT',async()=>{server.close();await closeDriver();});export default app;

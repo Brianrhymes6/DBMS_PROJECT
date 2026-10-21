@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: pet-adoption-rescue
+    env: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node backend/dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_ORIGIN
+        value: '*'
+      - key: DEMO_WRITES_ENABLED
+        value: 'false'
+      - key: NEO4J_URI
+        sync: false
+      - key: NEO4J_USERNAME
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
+      - key: NEO4J_DATABASE
+        value: neo4j

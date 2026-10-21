@@ -2,6 +2,6 @@
   "name": "pet-rescue-da3",
   "private": true,
   "workspaces": ["frontend", "backend"],
-  "scripts": {"dev": "concurrently -k \"npm:dev -w backend\" \"npm:dev -w frontend\"", "build": "npm run build -w backend && npm run build -w frontend", "test": "npm test -w backend", "seed": "npm run seed -w backend"},
+  "scripts": {"dev": "concurrently -k \"npm:dev -w backend\" \"npm:dev -w frontend\"", "build": "npm run build -w backend && npm run build -w frontend", "start": "npm start -w backend", "test": "npm test -w backend", "seed": "npm run seed -w backend"},
   "devDependencies": {"concurrently": "^9.1.2"}
 }
