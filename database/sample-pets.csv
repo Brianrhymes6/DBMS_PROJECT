@@ -3,5 +3,7 @@ pet_id,name,age,gender,breed,status,shelter_id,category_id
 102,Milo,1,Male,Persian,Adopted,1,2
 103,Rocky,3,Male,Indie,Adopted,1,1
 104,Lucky,1,Male,Indie,Available,1,1
-105,tomy,2,Male,Indie,Available,1,1
-106,sravy,1,Female,Persian,Available,1,2
+105,tomy,2,Male,Indie,Available,2,1
+106,sravy,1,Female,Persian,Available,3,2
+107,Bella,4,Female,Golden Retriever,Available,4,1
+108,Max,2,Male,Beagle,Pending,5,1

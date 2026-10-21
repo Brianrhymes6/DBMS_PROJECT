@@ -1,6 +1,15 @@
 import { FormEvent, useEffect, useState } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
-import { Activity, Cat, PawPrint, ShieldCheck } from 'lucide-react';
+import { Activity, Cat, PawPrint, ShieldCheck, Heart, Users } from 'lucide-react';
+import {
+  samplePets,
+  sampleShelters,
+  sampleAdoptions,
+  sampleVolunteers,
+  sampleDonations,
+  sampleGraphData,
+  sampleDashboardStats,
+} from './sampleData';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
@@ -70,7 +79,7 @@ function PetCards({ pets }: { pets: Row[] }) {
   if (!pets.length) {
     return (
       <div className="empty">
-        No pet records returned. Connect Neo4j and seed the database to show live records.
+        No pet records returned. Connect Neo4j or load sample dataset to show records.
       </div>
     );
   }
@@ -197,8 +206,7 @@ function DataGraph({ data, onSelect }: { data: Row; onSelect: (node: Row) => voi
   if (!elements.length) {
     return (
       <div className="empty">
-        Neo4j graph is empty or unavailable. Seed the database to explore real nodes and
-        relationships.
+        Neo4j graph is empty or unavailable.
       </div>
     );
   }
@@ -207,7 +215,7 @@ function DataGraph({ data, onSelect }: { data: Row; onSelect: (node: Row) => voi
     <CytoscapeComponent
       elements={elements}
       layout={{ name: 'cose', animate: false, idealEdgeLength: 100 } as any}
-      style={{ width: '100%', height: '500px' }}
+      style={{ width: '100%', height: '520px' }}
       stylesheet={graphStylesheet}
       cy={(cy: any) => {
         if (cy) {
@@ -221,31 +229,61 @@ function DataGraph({ data, onSelect }: { data: Row; onSelect: (node: Row) => voi
 export default function App() {
   const [page, setPage] = useState<Page>('Home');
   const [health, setHealth] = useState(false);
-  const [stats, setStats] = useState<Row>({});
-  const [pets, setPets] = useState<Row[]>([]);
-  const [shelters, setShelters] = useState<Row[]>([]);
-  const [apps, setApps] = useState<Row[]>([]);
-  const [graph, setGraph] = useState<Row>({ nodes: [], relationships: [] });
+  const [stats, setStats] = useState<Row>(sampleDashboardStats);
+  const [pets, setPets] = useState<Row[]>(samplePets);
+  const [shelters, setShelters] = useState<Row[]>(sampleShelters);
+  const [apps, setApps] = useState<Row[]>(sampleAdoptions);
+  const [volunteers, setVolunteers] = useState<Row[]>(sampleVolunteers);
+  const [donations, setDonations] = useState<Row[]>(sampleDonations);
+  const [graph, setGraph] = useState<Row>(sampleGraphData);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState('');
 
   const refresh = async () => {
-    const all = await Promise.allSettled([
-      api('/health'),
-      api('/dashboard'),
-      api('/pets'),
-      api('/shelters'),
-      api('/adoptions'),
-      api('/graph'),
-    ]);
+    try {
+      const all = await Promise.allSettled([
+        api('/health'),
+        api('/dashboard'),
+        api('/pets'),
+        api('/shelters'),
+        api('/adoptions'),
+        api('/graph'),
+        api('/volunteers'),
+        api('/donations'),
+      ]);
 
-    setHealth(all[0].status === 'fulfilled' && all[0].value.status === 'ok');
-    if (all[1].status === 'fulfilled') setStats(all[1].value.stats || {});
-    if (all[2].status === 'fulfilled') setPets(all[2].value.map((x: Row) => x.pet));
-    if (all[3].status === 'fulfilled') setShelters(all[3].value.map((x: Row) => x.shelter));
-    if (all[4].status === 'fulfilled') setApps(all[4].value.map((x: Row) => x.adoption));
-    if (all[5].status === 'fulfilled') setGraph(all[5].value);
+      const isLive = all[0].status === 'fulfilled' && all[0].value.status === 'ok';
+      setHealth(isLive);
+
+      if (isLive) {
+        if (all[1].status === 'fulfilled') setStats(all[1].value.stats || {});
+        if (all[2].status === 'fulfilled') setPets(all[2].value.map((x: Row) => x.pet));
+        if (all[3].status === 'fulfilled') setShelters(all[3].value.map((x: Row) => x.shelter));
+        if (all[4].status === 'fulfilled') setApps(all[4].value.map((x: Row) => x.adoption));
+        if (all[5].status === 'fulfilled') setGraph(all[5].value);
+        if (all[6].status === 'fulfilled') setVolunteers(all[6].value.map((x: Row) => x.volunteer));
+        if (all[7].status === 'fulfilled') setDonations(all[7].value.map((x: Row) => x.donation));
+      } else {
+        // When backend/Neo4j is not connected (e.g. GitHub Pages preview), load full sample dataset (5-8 records per entity)
+        setStats(sampleDashboardStats);
+        setPets(samplePets);
+        setShelters(sampleShelters);
+        setApps(sampleAdoptions);
+        setVolunteers(sampleVolunteers);
+        setDonations(sampleDonations);
+        setGraph(sampleGraphData);
+      }
+    } catch {
+      setHealth(false);
+      setStats(sampleDashboardStats);
+      setPets(samplePets);
+      setShelters(sampleShelters);
+      setApps(sampleAdoptions);
+      setVolunteers(sampleVolunteers);
+      setDonations(sampleDonations);
+      setGraph(sampleGraphData);
+    }
   };
 
   useEffect(() => {
@@ -324,11 +362,12 @@ export default function App() {
         <Tile label="Pending Applications" value={stats.pending} />
         <Tile label="Shelters" value={stats.shelters} />
       </div>
-      {health && (
-        <p className="live-note">
-          <Activity size={15} /> Statistics are loaded live from the Neo4j database.
-        </p>
-      )}
+      <p className="live-note">
+        <Activity size={15} />{' '}
+        {health
+          ? 'Statistics are loaded live from the Neo4j database.'
+          : 'Displaying coursework sample dataset (5 to 8 records per entity). Connect Neo4j backend for live database queries.'}
+      </p>
     </section>
   );
 
@@ -345,7 +384,7 @@ export default function App() {
           </div>
           <span className={`connection ${health ? 'connected' : 'disconnected'}`}>
             <i />
-            Neo4j {health ? 'Connected' : 'Not connected'}
+            {health ? 'Neo4j Connected' : 'Sample Dataset Mode'}
           </span>
         </div>
         <nav className="site-nav">
@@ -381,7 +420,11 @@ export default function App() {
               <div className="card-heading">
                 <div>
                   <h2>Pets Looking for Homes</h2>
-                  <p className="muted-copy">Pet information is loaded from the Neo4j database.</p>
+                  <p className="muted-copy">
+                    {health
+                      ? 'Pet information is loaded from the Neo4j database.'
+                      : 'Pet information loaded from the DA3 sample dataset.'}
+                  </p>
                 </div>
                 <button className="link-button" onClick={() => setPage('Pets')}>
                   View all pets →
@@ -397,7 +440,11 @@ export default function App() {
         {page === 'Pets' && (
           <section className="white-card">
             <h2>Pets Looking for Homes</h2>
-            <p className="muted-copy">Pet information is loaded from the Neo4j database.</p>
+            <p className="muted-copy">
+              {health
+                ? 'Pet information is loaded from the Neo4j database.'
+                : 'Pet information loaded from the DA3 sample dataset.'}
+            </p>
             <PetCards pets={pets} />
           </section>
         )}
@@ -438,7 +485,14 @@ export default function App() {
               {
                 name: 'category_id',
                 label: 'Category',
-                options: ['1 — Dog', '2 — Cat', '3 — Rabbit', '4 — Small Animal'],
+                options: [
+                  '1 — Dog',
+                  '2 — Cat',
+                  '3 — Rabbit',
+                  '4 — Bird',
+                  '5 — Small Mammal',
+                  '6 — Reptile',
+                ],
               },
               { name: 'rescue_location', label: 'Rescue Location' },
             ],
@@ -446,95 +500,136 @@ export default function App() {
             'Record Rescued Pet'
           )}
 
-        {page === 'Donate' &&
-          form(
-            'Support a Shelter',
-            'Record a donation for a shelter. Academic prototype; this application does not process payments.',
-            [
-              { name: 'name', label: 'Your Name' },
-              { name: 'email', label: 'Email', type: 'email' },
-              { name: 'amount', label: 'Donation Amount (₹)', type: 'number' },
-              {
-                name: 'shelter_id',
-                label: 'Select Shelter',
-                placeholder: 'Select a shelter',
-                options: shelters.map((s) => `${s.shelter_id} — ${s.shelter_name}`),
-              },
-            ],
-            '/donations',
-            'Record Donation'
-          )}
+        {page === 'Donate' && (
+          <>
+            {form(
+              'Support a Shelter',
+              'Record a donation for a shelter. Academic prototype; this application does not process payments.',
+              [
+                { name: 'name', label: 'Your Name' },
+                { name: 'email', label: 'Email', type: 'email' },
+                { name: 'amount', label: 'Donation Amount (₹)', type: 'number' },
+                {
+                  name: 'shelter_id',
+                  label: 'Select Shelter',
+                  placeholder: 'Select a shelter',
+                  options: shelters.map((s) => `${s.shelter_id} — ${s.shelter_name}`),
+                },
+              ],
+              '/donations',
+              'Record Donation'
+            )}
+
+            <section className="white-card">
+              <h2>Recent Donations ({donations.length})</h2>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Donation ID</th>
+                      <th>Donor</th>
+                      <th>Shelter</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {donations.map((d, i) => (
+                      <tr key={d.donation_id || i}>
+                        <td>{d.donation_id}</td>
+                        <td>{d.donor}</td>
+                        <td>{d.shelter}</td>
+                        <td>₹{Number(d.amount).toLocaleString('en-IN')}</td>
+                        <td>{d.donation_date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        )}
 
         {page === 'Volunteer' && (
           <section className="white-card">
-            <h2>Volunteer with a Rescue</h2>
+            <h2>Registered Volunteers ({volunteers.length})</h2>
             <p className="muted-copy">
-              Volunteers and rescue-event participation are represented as connected graph data.
+              Volunteers participate in rescue events and support partner shelters.
             </p>
-            <div className="info-callout">
+            <div className="shelter-grid">
+              {volunteers.map((v, i) => (
+                <article className="shelter-card" key={v.volunteer_id || i}>
+                  <h3>
+                    <Users size={16} /> {v.name}
+                  </h3>
+                  <p>
+                    <strong>ID:</strong> {v.volunteer_id}
+                  </p>
+                  <p>
+                    <strong>Phone:</strong> {v.phone}
+                  </p>
+                  <b>Experience: {v.experience}</b>
+                </article>
+              ))}
+            </div>
+            <div className="info-callout" style={{ marginTop: '20px' }}>
               Open the Neo4j Graph page to explore how volunteers connect to rescue events, pets,
               and shelters.
             </div>
             <button className="submit-button" onClick={() => setPage('Neo4j Graph')}>
-              Explore volunteer relationships
+              Explore volunteer relationships in graph
             </button>
           </section>
         )}
 
         {page === 'Records' && (
           <section className="white-card">
-            <h2>Adoption Requests</h2>
-            {apps.length ? (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Application</th>
-                      <th>Adopter</th>
-                      <th>Pet</th>
-                      <th>Date</th>
-                      <th>Status</th>
+            <h2>Adoption Applications ({apps.length})</h2>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Application</th>
+                    <th>Adopter</th>
+                    <th>Pet</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {apps.map((a, i) => (
+                    <tr key={a.adoption_id || i}>
+                      <td>{a.adoption_id}</td>
+                      <td>{a.adopter}</td>
+                      <td>{a.pet}</td>
+                      <td>{a.application_date}</td>
+                      <td>
+                        <span className={`pet-status ${String(a.status).toLowerCase()}`}>
+                          {a.status}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {apps.map((a, i) => (
-                      <tr key={a.adoption_id || i}>
-                        <td>{a.adoption_id}</td>
-                        <td>{a.adopter}</td>
-                        <td>{a.pet}</td>
-                        <td>{a.application_date}</td>
-                        <td>
-                          <span className={`pet-status ${String(a.status).toLowerCase()}`}>
-                            {a.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="empty">No applications loaded. Connect Neo4j and seed the database.</p>
-            )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
         {page === 'Shelters' && (
           <section className="white-card">
-            <h2>Partner Shelters</h2>
+            <h2>Partner Shelters ({shelters.length})</h2>
             <div className="shelter-grid">
               {shelters.map((s, i) => (
                 <article className="shelter-card" key={s.shelter_id || i}>
                   <h3>⌂ {s.shelter_name}</h3>
                   <p>{s.location}</p>
+                  <p>Contact: {s.contact}</p>
                   <p>{s.pets?.length || 0} pets currently connected</p>
                   <b>Donation total: ₹{Number(s.donation_total || 0).toLocaleString('en-IN')}</b>
                 </article>
               ))}
             </div>
-            {!shelters.length && (
-              <p className="empty">Shelters will appear when Neo4j is connected.</p>
-            )}
           </section>
         )}
 
@@ -551,9 +646,10 @@ export default function App() {
               connections.
             </p>
             <div className="info-callout">
-              <ShieldCheck size={18} /> Academic prototype. Seed records are fictional. Neo4j
-              credentials remain securely on the backend; public write access is restricted by
-              default.
+              <ShieldCheck size={18} /> Academic coursework project. Includes 5 to 8 records for
+              every core entity (Users, Pets, Pet Categories, Shelters, Adoption Applications,
+              Volunteers, Rescue Events, and Donations). Neo4j credentials remain securely on the
+              backend; public write access is restricted by default.
             </div>
           </section>
         )}
@@ -564,12 +660,14 @@ export default function App() {
               <div>
                 <h2>Neo4j Relationship Graph</h2>
                 <p className="muted-copy">
-                  Live nodes and directed relationships read from Neo4j. Drag, zoom, pan, and
-                  select a node to inspect its properties.
+                  {health
+                    ? 'Live nodes and directed relationships read from Neo4j.'
+                    : 'Interactive graph visualization of the DA3 dataset nodes and directed relationships.'}{' '}
+                  Drag, zoom, pan, and select a node to inspect its properties.
                 </p>
               </div>
               <span className={`connection ${health ? 'connected' : 'disconnected'}`}>
-                <i /> {health ? 'Live graph' : 'Database unavailable'}
+                <i /> {health ? 'Live Neo4j' : 'Sample Dataset'}
               </span>
             </div>
             <div className="graph-wrap">
@@ -583,19 +681,19 @@ export default function App() {
             <div className="graph-legend">
               <span>
                 <i className="pet-dot" />
-                Pets
+                Pets (8)
               </span>
               <span>
                 <i className="shelter-dot" />
-                Shelters
+                Shelters (6)
               </span>
               <span>
                 <i className="people-dot" />
-                Users / Volunteers
+                Users (8) / Volunteers (6)
               </span>
               <span>
                 <i className="other-dot" />
-                Other entities
+                Categories (6) / Events (7) / Donations (8) / Adoptions (7)
               </span>
             </div>
             <pre className="node-inspector">
