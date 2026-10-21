@@ -1,0 +1,7 @@
+pet_id,name,age,gender,breed,status,shelter_id,category_id
+101,Bruno,2,Male,Labrador,Adopted,1,1
+102,Milo,1,Male,Persian,Adopted,1,2
+103,Rocky,3,Male,Indie,Adopted,1,1
+104,Lucky,1,Male,Indie,Available,1,1
+105,tomy,2,Male,Indie,Available,1,1
+106,sravy,1,Female,Persian,Available,1,2

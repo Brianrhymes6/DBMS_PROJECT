@@ -1,0 +1,10 @@
+CREATE CONSTRAINT user_id_unique IF NOT EXISTS FOR (n:User) REQUIRE n.user_id IS UNIQUE;
+CREATE CONSTRAINT pet_id_unique IF NOT EXISTS FOR (n:Pet) REQUIRE n.pet_id IS UNIQUE;
+CREATE CONSTRAINT category_id_unique IF NOT EXISTS FOR (n:PetCategory) REQUIRE n.category_id IS UNIQUE;
+CREATE CONSTRAINT shelter_id_unique IF NOT EXISTS FOR (n:Shelter) REQUIRE n.shelter_id IS UNIQUE;
+CREATE CONSTRAINT adoption_id_unique IF NOT EXISTS FOR (n:Adoption) REQUIRE n.adoption_id IS UNIQUE;
+CREATE CONSTRAINT volunteer_id_unique IF NOT EXISTS FOR (n:Volunteer) REQUIRE n.volunteer_id IS UNIQUE;
+CREATE CONSTRAINT rescue_id_unique IF NOT EXISTS FOR (n:RescueEvent) REQUIRE n.rescue_id IS UNIQUE;
+CREATE CONSTRAINT donation_id_unique IF NOT EXISTS FOR (n:Donation) REQUIRE n.donation_id IS UNIQUE;
+CREATE INDEX pet_status IF NOT EXISTS FOR (p:Pet) ON (p.status);
+CREATE INDEX shelter_location IF NOT EXISTS FOR (s:Shelter) ON (s.location);
